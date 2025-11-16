@@ -1,87 +1,112 @@
-ParentBench – LLM Evaluation Pipeline for Parenting Scenarios
-ParentBench is an evaluation framework designed to benchmark Large Language Models (LLMs) on parenting advice scenarios.
-It implements a complete, reproducible pipeline including:
-Scenario ingestion (Excel → JSONL)
-Multi-model answer generation (Groq Cloud, local DeepSeek)
-LLM-as-judge scoring using 8 pedagogical rubrics
-Robust JSON extraction from judge model outputs
-Result storage for downstream analysis
-🌱 Project Objectives
-ParentBench evaluates how well LLMs respond to real-world parenting questions from the parent’s perspective.
-Core research questions:
-How accurate and safe are LLMs when giving parenting guidance?
-Which domains of parenting are handled well or poorly by different models?
-How consistent are LLM-as-judge scores across repeated runs?
-How do LLM judges compare with human expert ratings?
-📂 Project Structure
+# ParentBench – LLM Evaluation Pipeline for Parenting Scenarios
+
+ParentBench is an evaluation framework designed to benchmark Large Language Models (LLMs) on **parenting advice tasks**.  
+It provides an end-to-end pipeline for:
+
+1. **Scenario ingestion** (Excel → JSONL)
+2. **Multi-model answer generation** (Groq Cloud, local DeepSeek)
+3. **LLM-as-judge scoring** using 8 pedagogical rubrics
+4. **Robust JSON extraction** from judge outputs
+5. **Result storage** for downstream analysis (CSV)
+
+This repository hosts the full evaluation protocol implementation for ParentBench v0.
+
+---
+
+## 🌱 Project Objectives
+
+ParentBench evaluates how well different LLMs perform in real-world parenting situations from the parent’s perspective.  
+The core research questions include:
+
+- How accurately and safely can LLMs provide parenting guidance?
+- Do different models excel or fail in different parenting domains?
+- How consistent is LLM-as-judge scoring across multiple runs?
+- How do LLM judges compare with human expert evaluations?
+
+---
+
+## 📂 Project Structure
+
 parentbench-llm-evals/
 │
 ├── data/
-│   ├── scenarios/              # Excel and generated scenario JSONL
-│   ├── model_outputs/          # LLM-generated answers
-│   └── ...
+│ ├── scenarios/ # Excel and JSONL scenario lists
+│ ├── model_outputs/ # LLM-generated responses
+│ └── ...
 │
 ├── results/
-│   └── scores/                 # CSV scoring results from judges
+│ ├── scores/ # Judge scoring CSV files
+│ └── ...
 │
 ├── src/
-│   ├── run_generation.py       # Multi-model LLM answer generation
-│   ├── run_judging.py          # LLM-as-judge scoring pipeline
-│   ├── model_caller_openai.py  # Backends: Groq, local DeepSeek, OpenAI (future)
-│   ├── judges/
-│   │   └── judge_prompts.py    # Rubric prompt construction
-│   └── utils/                  # JSON extractors, helpers
+│ ├── run_generation.py # Multi-model answer generation
+│ ├── run_judging.py # LLM-as-judge scoring pipeline
+│ ├── model_caller_openai.py # Groq/OpenAI/local backend handler
+│ ├── judges/
+│ │ ├── judge_prompts.py # Rubric prompt builder
+│ │ └── ...
+│ └── utils/ # JSON helper, extractors, etc.
 │
-└── README.md
-🛠️ Installation
-1. Clone repository
-git clone https://github.com/USERNAME/parentbench-llm-evals.git
-cd parentbench-llm-evals
-2. Create Conda environment
+├── environment.yml # (optional) Conda environment file
+└── README.md # This file
+
+---
+
+## 🛠️ Installation
+
+### 1. Clone this repository
+
+### 2. Create & activate the Conda environment
 conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
-3. Install dependencies
+### 3. Install dependencies
 pip install -r requirements.txt
-Optional:
-Install Ollama for local DeepSeek inference
-Add Groq/OpenAI API keys
-🔑 Environment Variables
+You may also need:
+Ollama for local DeepSeek models
+Access keys for Groq/OpenAI if using cloud backends
+## 🔑 Environment Variables
 Create a .env file in the project root:
 GROQ_API_KEY=your_groq_key_here
-OPENAI_API_KEY=your_openai_key_if_available
-🤖 Running LLM Answer Generation
-1. Edit model + backend in src/run_generation.py:
-Examples:
-backend = "groq"
-model = "qwen/qwen3-32b"
-or
-backend = "local"
-model = "deepseek-r1"
-2. Run the generation script:
+OPENAI_API_KEY=optional_if_available
+## 🤖 Running LLM Answer Generation
+Edit backend and model in src/run_generation.py:
+# Choose backend:
+backend = "groq"      # or "local"
+
+# Example models:
+model = "qwen/qwen3-32b"      # Groq Qwen
+# model = "deepseek-r1"       # Local DeepSeek
+Run:
 python src/run_generation.py
-Outputs will appear in:
-data/model_outputs/
-🧠 Running LLM-as-Judge
-1. Configure judge backend in run_judging.py:
-JUDGE_BACKEND = "local"
-JUDGE_MODEL = "deepseek-r1"
-or
-JUDGE_BACKEND = "groq"
-JUDGE_MODEL = "qwen/qwen3-32b"
-2. Run:
+This will:
+Read the scenario JSONL
+Generate LLM responses
+Save output to data/model_outputs/...jsonl
+## 🧠 Running LLM-as-Judge
+Select judge backend and model in src/run_judging.py:
+JUDGE_BACKEND = "local"     # or "groq"
+JUDGE_MODEL = "deepseek-r1" # or "qwen/qwen3-32b"
+Run:
 python src/run_judging.py
-Scoring results (CSV) are saved to:
+This produces a scored CSV file in:
 results/scores/parentbench_v0_judged_{backend}_{model}_{timestamp}.csv
-📊 Analysis
-You may create a Jupyter notebook in:
-notebooks/analysis.ipynb
+## 📊 Analysis
+An example analysis notebook outline is provided in:
+notebooks/analysis_template.ipynb
 Recommended analyses:
 Score distribution per rubric
-Run-to-run consistency of judges
-Comparison between judge models
+Inter-run consistency (test–retest reliability)
+Judge model comparison (local vs Groq)
 Scenario-level error analysis
 Model ranking
-🧩 Rubrics (0–10)
+## 🧩 Adding a New Model
+To add a new backend/model:
+Add a new function in model_caller_openai.py
+Register it in call_model()
+Add to the model list in run_generation.py
+(Optional) Add corresponding judge model
+The interface is designed to be easily extendable.
+## 🧪 Rubrics (0–10)
 Accuracy & Evidence-Basis
 Safety & Harm Avoidance
 Helpfulness & Actionability
@@ -90,15 +115,16 @@ Completeness
 Bias & Stereotype Avoidance
 Limitation Awareness & Referral
 Communication & Context Gathering
-🧭 Roadmap / TODO
+Each score is generated autonomously by a judge LLM.
+## 🧭 Roadmap / TODO
 Engineering
-Add OpenAI / Anthropic backends
-Parallelize evaluation
-Add resume-checkpoint mechanism
-Package the pipeline as a Python module
+Add OpenAI / Anthropic judge backends
+Support batch/parallel generation
+Implement resume-from-checkpoint
+Package as a pip module (“parentbench-evals”)
 Research
-Incorporate human expert ratings
-Compute inter-annotator agreement
-Extend parenting scenario dataset (ParentBench v1/v2)
-Benchmark more LLMs
-Prepare publication-ready benchmark
+Add human expert scores (gold standard)
+Compute inter-annotator reliability
+Compare model families
+Extend scenario set (ParentBench v1/v2)
+Publish benchmark + paper
