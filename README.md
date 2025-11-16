@@ -61,7 +61,17 @@ conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
 ```
 ### 3. Install dependencies
-pip install -r requirements.txt
+Core
+python-dotenv:requests,pandas,openpyxl
+LLM Backends:groq,openai 
+Local LLM via subprocess (no Python package needed for ollama)
+JSON / parsing utilities
+tiktoken
+Notebook / analysis
+jupyter
+matplotlib
+seaborn
+tqdm
 You may also need:
 Ollama for local DeepSeek models
 Access keys for Groq/OpenAI if using cloud backends
