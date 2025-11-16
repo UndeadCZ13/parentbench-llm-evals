@@ -61,8 +61,8 @@ conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
 ```
 ### 3. Install dependencies
-Core
-python-dotenv:requests,pandas,openpyxl
+```
+Core:python-dotenv,requests,pandas,openpyxl
 LLM Backends:groq,openai 
 Local LLM via subprocess (no Python package needed for ollama)
 JSON / parsing utilities
@@ -75,16 +75,21 @@ tqdm
 You may also need:
 Ollama for local DeepSeek models
 Access keys for Groq/OpenAI if using cloud backends
+```
 ## 🔑 Environment Variables
+```
 Create a .env file in the project root:
 GROQ_API_KEY=your_groq_key_here
 OPENAI_API_KEY=optional_if_available
+```
 ## 🤖 Running LLM Answer Generation
+```
 Edit backend and model in src/run_generation.py:
 ##Choose backend:
 backend = "groq"      # or "local"
-
+```
 ## Example models:
+```
 model = "qwen/qwen3-32b"      # Groq Qwen
 model = "deepseek-r1"       # Local DeepSeek
 Run:
@@ -93,7 +98,9 @@ This will:
 Read the scenario JSONL
 Generate LLM responses
 Save output to data/model_outputs/...jsonl
+```
 ## 🧠 Running LLM-as-Judge
+```
 Select judge backend and model in src/run_judging.py:
 JUDGE_BACKEND = "local"     # or "groq"
 JUDGE_MODEL = "deepseek-r1" # or "qwen/qwen3-32b"
@@ -101,14 +108,18 @@ Run:
 python src/run_judging.py
 This produces a scored CSV file in:
 results/scores/parentbench_v0_judged_{backend}_{model}_{timestamp}.csv
+```
 ## 🧩 Adding a New Model
+```
 To add a new backend/model:
 Add a new function in model_caller_openai.py
 Register it in call_model()
 Add to the model list in run_generation.py
 (Optional) Add corresponding judge model
 The interface is designed to be easily extendable.
+```
 ## 🧪 Rubrics (0–10)
+```
 Accuracy & Evidence-Basis
 Safety & Harm Avoidance
 Helpfulness & Actionability
@@ -118,3 +129,4 @@ Bias & Stereotype Avoidance
 Limitation Awareness & Referral
 Communication & Context Gathering
 Each score is generated autonomously by a judge LLM.
+```
