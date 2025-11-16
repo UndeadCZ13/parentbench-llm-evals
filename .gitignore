@@ -1,0 +1,15 @@
+# Python
+*.pyc
+__pycache__/
+
+# Virtual environments
+venv/
+.env
+
+# Data outputs
+data/model_outputs/*
+results/scores/*
+!.gitkeep
+
+# System files
+.DS_Store
