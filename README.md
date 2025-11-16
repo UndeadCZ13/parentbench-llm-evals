@@ -51,12 +51,15 @@ parentbench-llm-evals/
 ## 🛠️ Installation
 
 ### 1. Clone this repository
+```
 git clone https://github.com/UndeadCZ13/parentbench-llm-evals.git
 cd parentbench-llm-evals
-
+```
 ### 2. Create & activate the Conda environment
+```
 conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
+```
 ### 3. Install dependencies
 pip install -r requirements.txt
 You may also need:
