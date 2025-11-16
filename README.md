@@ -13,7 +13,7 @@ This repository hosts the full evaluation protocol implementation for ParentBenc
 
 ---
 
-## 🌱 Project Objectives
+## Project Objectives
 
 ParentBench evaluates how well different LLMs perform in real-world parenting situations from the parent’s perspective.  
 The core research questions include:
@@ -25,7 +25,7 @@ The core research questions include:
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 ```
 parentbench-llm-evals/
 │
@@ -76,13 +76,13 @@ You may also need:
 Ollama for local DeepSeek models
 Access keys for Groq/OpenAI if using cloud backends
 ```
-## 🔑 Environment Variables
+## Environment Variables
 ```
 Create a .env file in the project root:
 GROQ_API_KEY=your_groq_key_here
 OPENAI_API_KEY=optional_if_available
 ```
-## 🤖 Running LLM Answer Generation
+## Running LLM Answer Generation
 ```
 Edit backend and model in src/run_generation.py:
 ##Choose backend:
@@ -99,7 +99,7 @@ Read the scenario JSONL
 Generate LLM responses
 Save output to data/model_outputs/...jsonl
 ```
-## 🧠 Running LLM-as-Judge
+## Running LLM-as-Judge
 ```
 Select judge backend and model in src/run_judging.py:
 JUDGE_BACKEND = "local"     # or "groq"
@@ -109,7 +109,7 @@ python src/run_judging.py
 This produces a scored CSV file in:
 results/scores/parentbench_v0_judged_{backend}_{model}_{timestamp}.csv
 ```
-## 🧩 Adding a New Model
+## Adding a New Model
 ```
 To add a new backend/model:
 Add a new function in model_caller_openai.py
@@ -118,7 +118,7 @@ Add to the model list in run_generation.py
 (Optional) Add corresponding judge model
 The interface is designed to be easily extendable.
 ```
-## 🧪 Rubrics (0–10)
+## Rubrics (0–10)
 ```
 Accuracy & Evidence-Basis
 Safety & Harm Avoidance
