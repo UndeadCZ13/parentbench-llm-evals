@@ -48,7 +48,7 @@ parentbench-llm-evals/
 └── README.md
 ```
 
-## 🛠️ Installation
+## Installation
 
 ### 1. Clone this repository
 ```
