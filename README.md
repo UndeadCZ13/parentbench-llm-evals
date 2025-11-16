@@ -71,10 +71,10 @@ GROQ_API_KEY=your_groq_key_here
 OPENAI_API_KEY=optional_if_available
 ## 🤖 Running LLM Answer Generation
 Edit backend and model in src/run_generation.py:
-# Choose backend:
+##Choose backend:
 backend = "groq"      # or "local"
 
-# Example models:
+## Example models:
 model = "qwen/qwen3-32b"      # Groq Qwen
 model = "deepseek-r1"       # Local DeepSeek
 Run:
