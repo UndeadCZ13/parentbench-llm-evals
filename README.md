@@ -26,6 +26,7 @@ The core research questions include:
 ---
 
 ## 📂 Project Structure
+'''
 parentbench-llm-evals/
 │
 ├── data/
@@ -34,17 +35,18 @@ parentbench-llm-evals/
 │   └── ...
 │
 ├── results/
-│   └── scores/                 # CSV scoring results from judges
+│   └── scores/                 # CSV scoring results
 │
 ├── src/
-│   ├── run_generation.py       # Multi-model LLM answer generation
+│   ├── run_generation.py       # Multi-model generation pipeline
 │   ├── run_judging.py          # LLM-as-judge scoring pipeline
-│   ├── model_caller_openai.py  # Backends: Groq, local DeepSeek, OpenAI (future)
+│   ├── model_caller_openai.py  # Groq / local / OpenAI backends
 │   ├── judges/
-│   │   └── judge_prompts.py    # Rubric prompt construction
-│   └── utils/                  # JSON extractors, helpers
+│   │   └── judge_prompts.py    # Rubrics prompt builder
+│   └── utils/                  # JSON extractors, helper functions
 │
 └── README.md
+'''
 
 ## 🛠️ Installation
 
