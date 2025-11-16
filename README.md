@@ -56,9 +56,6 @@ parentbench-llm-evals/
 
 ### 1. Clone this repository
 
-```bash
-git clone https://github.com/USERNAME/parentbench-llm-evals.git
-cd parentbench-llm-evals
 2. Create & activate the Conda environment
 conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
