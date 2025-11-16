@@ -30,25 +30,23 @@ The core research questions include:
 parentbench-llm-evals/
 │
 ├── data/
-│ ├── scenarios/ # Excel and JSONL scenario lists
-│ ├── model_outputs/ # LLM-generated responses
-│ └── ...
+│   ├── scenarios/              # Excel and generated scenario JSONL
+│   ├── model_outputs/          # LLM-generated answers
+│   └── ...
 │
 ├── results/
-│ ├── scores/ # Judge scoring CSV files
-│ └── ...
+│   └── scores/                 # CSV scoring results from judges
 │
 ├── src/
-│ ├── run_generation.py # Multi-model answer generation
-│ ├── run_judging.py # LLM-as-judge scoring pipeline
-│ ├── model_caller_openai.py # Groq/OpenAI/local backend handler
-│ ├── judges/
-│ │ ├── judge_prompts.py # Rubric prompt builder
-│ │ └── ...
-│ └── utils/ # JSON helper, extractors, etc.
+│   ├── run_generation.py       # Multi-model LLM answer generation
+│   ├── run_judging.py          # LLM-as-judge scoring pipeline
+│   ├── model_caller_openai.py  # Backends: Groq, local DeepSeek, OpenAI (future)
+│   ├── judges/
+│   │   └── judge_prompts.py    # Rubric prompt construction
+│   └── utils/                  # JSON extractors, helpers
 │
-├── environment.yml # (optional) Conda environment file
-└── README.md # This file
+└── README.md
+
 
 ---
 
