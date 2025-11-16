@@ -26,7 +26,7 @@ The core research questions include:
 ---
 
 ## 📂 Project Structure
-'''
+```
 parentbench-llm-evals/
 │
 ├── data/
@@ -46,7 +46,7 @@ parentbench-llm-evals/
 │   └── utils/                  # JSON extractors, helper functions
 │
 └── README.md
-'''
+```
 
 ## 🛠️ Installation
 
