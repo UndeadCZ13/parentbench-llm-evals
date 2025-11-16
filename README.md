@@ -55,6 +55,8 @@ parentbench-llm-evals/
 ## 🛠️ Installation
 
 ### 1. Clone this repository
+git clone https://github.com/UndeadCZ13/parentbench-llm-evals.git
+cd parentbench-llm-evals
 
 ### 2. Create & activate the Conda environment
 conda create -n parentbench-evals python=3.12
@@ -75,7 +77,7 @@ backend = "groq"      # or "local"
 
 # Example models:
 model = "qwen/qwen3-32b"      # Groq Qwen
-# model = "deepseek-r1"       # Local DeepSeek
+model = "deepseek-r1"       # Local DeepSeek
 Run:
 python src/run_generation.py
 This will:
@@ -90,15 +92,6 @@ Run:
 python src/run_judging.py
 This produces a scored CSV file in:
 results/scores/parentbench_v0_judged_{backend}_{model}_{timestamp}.csv
-## 📊 Analysis
-An example analysis notebook outline is provided in:
-notebooks/analysis_template.ipynb
-Recommended analyses:
-Score distribution per rubric
-Inter-run consistency (test–retest reliability)
-Judge model comparison (local vs Groq)
-Scenario-level error analysis
-Model ranking
 ## 🧩 Adding a New Model
 To add a new backend/model:
 Add a new function in model_caller_openai.py
@@ -116,15 +109,3 @@ Bias & Stereotype Avoidance
 Limitation Awareness & Referral
 Communication & Context Gathering
 Each score is generated autonomously by a judge LLM.
-## 🧭 Roadmap / TODO
-Engineering
-Add OpenAI / Anthropic judge backends
-Support batch/parallel generation
-Implement resume-from-checkpoint
-Package as a pip module (“parentbench-evals”)
-Research
-Add human expert scores (gold standard)
-Compute inter-annotator reliability
-Compare model families
-Extend scenario set (ParentBench v1/v2)
-Publish benchmark + paper
