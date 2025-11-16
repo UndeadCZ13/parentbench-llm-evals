@@ -29,7 +29,7 @@ def call_groq_chat(
     prompt: str,
     model: str = "qwen/qwen3-32b",
     temperature: float = 0.7,
-    max_retries: int = 8,      # 比之前多给几次机会
+    max_retries: int = 8,     
 ) -> str:
     """
     通过 Groq API 调用模型（例如 qwen/qwen3-32b），带指数退避重试。
