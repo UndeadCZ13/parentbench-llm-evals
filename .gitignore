@@ -8,7 +8,10 @@ venv/
 
 # Data outputs
 data/model_outputs/*
+data/judge_outputs/*
 results/scores/*
+results/merged/*
+results/analysis/*
 !.gitkeep
 
 # System files
