@@ -80,13 +80,13 @@ parentbench-llm-evals/
         └── scoring_utils.py     # Score aggregation (mean/std/comments)
 ```
 ## 3. Installation
-# 3.1. Clone & environment**
+**3.1. Clone & environment**
 git clone https://github.com/UndeadCZ13/parentbench-llm-evals.git
 cd parentbench-llm-evals
 
 conda create -n parentbench-evals python=3.12
 conda activate parentbench-evals
-# 3.2. Install dependencies**
+**3.2. Install dependencies**
 pip install -r requirements.txt
 Typical dependencies:
 Core: python-dotenv, requests, pandas, tqdm, openpyxl
@@ -99,19 +99,19 @@ API keys and access for any cloud backends you plan to use
 ## 4. Environment & Backends
 All secrets are loaded via python-dotenv from a .env file in the project root.
 Create .env like:
-# OpenAI / compatible API
+OpenAI / compatible API
 OPENAI_API_KEY=your_openai_key_here
-# optional base URL if using an OpenAI-compatible endpoint
+optional base URL if using an OpenAI-compatible endpoint
 OPENAI_BASE_URL=https://api.openai.com/v1
 
-# Ollama local / cloud
-# Local (default):
-#   OLLAMA_BASE_URL=http://localhost:11434
-# Cloud:
-#   OLLAMA_BASE_URL=https://ollama.com
+Ollama local / cloud
+Local (default):
+OLLAMA_BASE_URL=http://localhost:11434
+Cloud:
+OLLAMA_BASE_URL=https://ollama.com
 OLLAMA_BASE_URL=https://ollama.com
 OLLAMA_API_KEY=your_ollama_cloud_key_here
-# 4.1. Unified backend interface
+**4.1. Unified backend interface**
 src/model_caller_openai.py exposes a single entry point:
 from model_caller_openai import call_model
 
@@ -136,20 +136,20 @@ Each line is a scenario record with a unique scenario_id and text fields (e.g., 
 This JSONL is the single source of truth for the benchmark scenarios.
 ## 6. Step 1 – Answer Generation (run_generation.py)
 Main script: src/run_generation.py
-# 6.1. Key options
+**6.1. Key options**
 Internally it uses:
 DEFAULT_SCENARIO_FILE = data/scenarios/parentbench_v0.jsonl
 DEFAULT_BACKEND (e.g., "ollama")
 DEFAULT_OLLAMA_MODEL_KEY (e.g., "glm_4_6")
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 You can override via CLI:
-# Example: use Ollama Cloud model registered as "glm_4_6"
+Example: use Ollama Cloud model registered as "glm_4_6"
 python src/run_generation.py \
   --scenarios data/scenarios/parentbench_v0.jsonl \
   --backend ollama \
   --ollama-model-key glm_4_6
 
-# Example: use OpenAI GPT-4o mini
+Example: use OpenAI GPT-4o mini
 python src/run_generation.py \
   --scenarios data/scenarios/parentbench_v0.jsonl \
   --backend openai \
@@ -170,7 +170,7 @@ Each line = one scenario + one model answer.
 Main script: src/run_judging.py
 This stage reads the generated answers and scores them with an LLM judge using the ParentBench rubrics.
 
-# 7.1. Rubrics & prompts
+**7.1. Rubrics & prompts**
 Rubrics and prompt templates live in:
 src/judges/judge_prompts.py
 Key constant:
@@ -185,12 +185,12 @@ RUBRIC_KEYS = [
     "communication",
 ]
 The judge prompt builds a structured instruction that asks the LLM judge to output a strict JSON object with integer scores from 0–100 for each rubric, plus optional comments.
-# 7.2. Multi-repeat judging
+**7.2. Multi-repeat judging**
 run_judging.py supports repeated scoring of the same answer to measure stability:
 --n_repeats: number of independent judge runs per (scenario, answer)
 (e.g., 3 – recommended default)
 CLI examples:
-# Use OpenAI judge (e.g., gpt-4o-mini), 3 repeats
+Use OpenAI judge (e.g., gpt-4o-mini), 3 repeats
 python src/run_judging.py \
   --answers data/model_outputs/parentbench_v0_ollama_glm-4-6_20251205-133105.jsonl \
   --backend openai \
@@ -198,7 +198,7 @@ python src/run_judging.py \
   --n_repeats 3 \
   --scenarios data/scenarios/parentbench_v0.jsonl
 
-# Use Ollama judge (local / Cloud), 3 repeats
+Use Ollama judge (local / Cloud), 3 repeats
 python src/run_judging.py \
   --answers data/model_outputs/parentbench_v0_ollama_glm-4-6_20251205-133105.jsonl \
   --backend ollama \
@@ -231,7 +231,7 @@ python src/analysis/export_scores.py \
   --input data/judge_outputs/parentbench_v0_ollama_glm-4-6_20251205-133105_judged_openai_gpt-4o-mini.jsonl
 If you omit --output, it writes to:
 results/scores/<judge_output_stem>.csv
-# e.g. results/scores/parentbench_v0_ollama_glm-4-6_20251205-133105_judged_openai_gpt-4o-mini.csv
+e.g. results/scores/parentbench_v0_ollama_glm-4-6_20251205-133105_judged_openai_gpt-4o-mini.csv
 Each row includes:
 scenario_id, scenario_text
 answer_model, answer_backend
