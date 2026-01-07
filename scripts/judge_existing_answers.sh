@@ -1,140 +1,265 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-########################################
-# 用户配置区
-########################################
+# ============================================================
+# judge_existing_answers.sh
+#
+# 功能：
+#   对一个或多个已生成的 answers(jsonl) 文件，按任意数量 judge 进行评分输出。
+#   judge 可来自 openai / ollama / groq，并支持简写 key。
+#
+# 用法 1（命令行传入多个 answers 文件）：
+#   ./scripts/judge_existing_answers.sh "data/model_outputs/a.jsonl" "data/model_outputs/b.jsonl"
+#
+# 用法 2（不传参数，使用脚本内 ANSWERS_FILES 列表）：
+#   ./scripts/judge_existing_answers.sh
+#
+# 用法 3（只跑一个 judge）：
+#   JUDGE_SPECS="openai:gpt_5_2" ./scripts/judge_existing_answers.sh "data/model_outputs/a.jsonl"
+#
+# 用法 4（增加 Groq judge）：
+#   JUDGE_SPECS="openai:gpt_5_2,ollama:deepseek_v3,groq:llama33_70b" \
+#     ./scripts/judge_existing_answers.sh "data/model_outputs/a.jsonl"
+#
+# 可选环境变量：
+#   JUDGE_SPECS="openai:gpt_5_2,ollama:deepseek_v3"  (默认：OpenAI gpt-5.2 + Ollama deepseek_v3)
+#   N_REPEATS=1                                       (默认：1)
+#   MAX_ITEMS=5                                       (默认：不设 -> 全部)
+#   JUDGE_MAX_TOKENS=1024                             (默认：1024)
+#   OUT_DIR="data/judge_outputs"                      (默认：data/judge_outputs)
+#
+# Judge spec 格式：
+#   backend:model_key_or_name
+#     - backend: openai | ollama | groq | local(视为ollama)
+#     - model_key_or_name：
+#         openai: gpt_5_2 / gpt_5_nano / gpt_4o_mini 或直接写 gpt-5.2
+#         ollama: deepseek_v3 / kimi_k2 / ... 或直接写 kimi-k2-thinking:cloud
+#         groq: llama31_8b / llama33_70b / qwen3_32b 或直接写 llama-3.3-70b-versatile
+# ============================================================
 
-# 场景文件（通常不用改）
-SCENARIO_FILE="data/scenarios/parentbench_v0.jsonl"
-
-# 需要被 judge 的 answer 文件名（只写文件名，不带目录，多个用 ; 分隔）
-# 例如：ANSWER_FILES="parentbench_v0_local_deepseek-r1_20251204-171641.jsonl;parentbench_v0_ollama_glm-4-6_20251205-133105.jsonl"
-ANSWER_FILES="parentbench_v0_local_deepseek-r1_20251204-171641.jsonl"
-
-# Judge 模型（单个），格式：backend:model_id
-# - 对 openai：model_id == --openai-model
-# - 对 ollama/local：model_id == --ollama-model-key
-JUDGE_MODEL_SPEC="ollama:deepseek_v3"
-
-# 每个 (answer, judge) 组合重复评分次数
-N_REPEATS=3
-
-########################################
-# 以下一般不需要改
-########################################
-
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-echo "== 项目根目录: $PROJECT_ROOT"
-echo "== 场景文件:   $SCENARIO_FILE"
-echo "== Answer 文件: $ANSWER_FILES"
-echo "== Judge 模型: $JUDGE_MODEL_SPEC"
-echo "== n_repeats:  $N_REPEATS"
-echo
+# -----------------------------
+# 你也可以在这里列出多个 answers 文件（不传参时会使用它）
+# 例：
+# ANSWERS_FILES=(
+#   "data/model_outputs/zh_openai_gpt-4o-mini.jsonl"
+#   "data/model_outputs/zh_ollama_kimi_k2.jsonl"
+# )
+# -----------------------------
+ANSWERS_FILES=(
+  # 示例：留空则必须命令行传入
+)
 
-mkdir -p data/judge_outputs results/scores
+# -----------------------------
+# Defaults
+# -----------------------------
+DEFAULT_JUDGE_SPECS="openai:gpt_5_2,ollama:deepseek_v3"
+JUDGE_SPECS="${JUDGE_SPECS:-$DEFAULT_JUDGE_SPECS}"
 
-SCENARIO_STEM="$(basename "$SCENARIO_FILE" .jsonl)"
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+N_REPEATS="${N_REPEATS:-1}"
+JUDGE_MAX_TOKENS="${JUDGE_MAX_TOKENS:-1024}"
+OUT_DIR="${OUT_DIR:-data/judge_outputs}"
 
-sanitize() {
-  echo "$1" | tr '/' '-' | tr ' ' '_' | tr ':' '-'
+MAX_ITEMS_FLAG=""
+if [[ -n "${MAX_ITEMS:-}" ]]; then
+  MAX_ITEMS_FLAG="--max-items ${MAX_ITEMS}"
+fi
+
+
+mkdir -p "$OUT_DIR"
+
+# -----------------------------
+# Resolvers (shorthand -> normalized)
+# -----------------------------
+resolve_openai_model() {
+  case "$1" in
+    gpt_5_2|gpt-5.2) echo "gpt-5.2" ;;
+    gpt_5_nano|gpt-5-nano) echo "gpt-5-nano" ;;
+    gpt_4o_mini|gpt-4o-mini) echo "gpt-4o-mini" ;;
+    *) echo "$1" ;;
+  esac
 }
 
-########################################
-# 解析 Judge 模型
-########################################
-
-JUDGE_SPEC_TRIM="${JUDGE_MODEL_SPEC//[[:space:]]/}"
-IFS=':' read -r JUDGE_BACKEND_RAW JUDGE_MODEL_ID <<< "$JUDGE_SPEC_TRIM" || {
-  echo "[ERROR] 无法解析 JUDGE_MODEL_SPEC='$JUDGE_MODEL_SPEC'，应为 backend:model 格式"
-  exit 1
+normalize_ollama_key_or_name() {
+  case "$1" in
+    qwen3_8b|qwen3:8b) echo "qwen3_8b" ;;
+    ministral3_14b|ministral-3:14b-cloud) echo "ministral3_14b" ;;
+    gpt_oss|gpt-oss:20b-cloud) echo "gpt_oss" ;;
+    deepseek_v3|deepseek-v3.1:671b-cloud) echo "deepseek_v3" ;;
+    deepseek_r1|deepseek-r1:latest) echo "deepseek_r1" ;;
+    kimi_k2|kimi-k2-thinking:cloud) echo "kimi_k2" ;;
+    minimax_m2|minimax-m2:cloud) echo "minimax_m2" ;;
+    *) echo "$1" ;;
+  esac
 }
-JUDGE_BACKEND="$(echo "$JUDGE_BACKEND_RAW" | tr '[:upper:]' '[:lower:]')"
-JUDGE_MODEL_TAG="$(sanitize "$JUDGE_MODEL_ID")"
 
-echo "== 解析 Judge 模型:"
-echo "   backend = $JUDGE_BACKEND"
-echo "   model   = $JUDGE_MODEL_ID"
-echo
+normalize_groq_key_or_name() {
+  case "$1" in
+    llama31_8b|llama-3.1-8b-instant) echo "llama31_8b" ;;
+    llama33_70b|llama-3.3-70b-versatile) echo "llama33_70b" ;;
+    qwen3_32b|qwen/qwen3-32b) echo "qwen3_32b" ;;
+    *) echo "$1" ;;
+  esac
+}
 
-########################################
-# 解析 Answer 文件列表
-########################################
+# -----------------------------
+# Judge runner for one answers file
+# -----------------------------
+run_judges_for_answers() {
+  local answers_path="$1"
+  local specs="$2"
 
-ANSWER_FILES_STR="${ANSWER_FILES:-}"
-if [[ -z "$ANSWER_FILES_STR" ]]; then
-  echo "[ERROR] ANSWER_FILES 为空，请在脚本顶部配置至少一个文件名。"
+  IFS=',' read -r -a spec_arr <<< "$specs"
+  for spec in "${spec_arr[@]}"; do
+    spec="$(echo "$spec" | tr -d '[:space:]')"
+    [[ -z "$spec" ]] && continue
+
+    local backend="${spec%%:*}"
+    local model_part="${spec#*:}"
+
+    if [[ -z "$backend" || -z "$model_part" || "$backend" == "$spec" ]]; then
+      echo "[WARN] Bad judge spec '$spec' (expected backend:model). Skipped."
+      continue
+    fi
+
+    if [[ "$backend" == "local" ]]; then
+      backend="ollama"
+    fi
+
+    if [[ "$backend" == "openai" ]]; then
+      local openai_model
+      openai_model="$(resolve_openai_model "$model_part")"
+      local out="$OUT_DIR/$(basename "$answers_path" .jsonl)_judged_openai_${openai_model//\//_}.jsonl"
+      echo "[JUDGE] openai:$openai_model | answers=$(basename "$answers_path") -> $(basename "$out")"
+      if [[ -n "${MAX_ITEMS:-}" ]]; then
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --openai-model "$openai_model" \
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --max-items "$MAX_ITEMS" \
+            --output "$out"
+        else
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --openai-model "$openai_model" \
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --output "$out"
+        fi
+
+
+    elif [[ "$backend" == "ollama" ]]; then
+      local key
+      key="$(normalize_ollama_key_or_name "$model_part")"
+      local out="$OUT_DIR/$(basename "$answers_path" .jsonl)_judged_ollama_${key}.jsonl"
+      echo "[JUDGE] ollama:$key | answers=$(basename "$answers_path") -> $(basename "$out")"
+      if [[ -n "${MAX_ITEMS:-}" ]]; then
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --backend ollama --ollama-model-key "$key"\
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --max-items "$MAX_ITEMS" \
+            --output "$out"
+        else
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --backend ollama --ollama-model-key "$key" \
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --output "$out"
+        fi
+
+    elif [[ "$backend" == "groq" ]]; then
+      local key
+      key="$(normalize_groq_key_or_name "$model_part")"
+      local out="$OUT_DIR/$(basename "$answers_path" .jsonl)_judged_groq_${key}.jsonl"
+      echo "[JUDGE] groq:$key | answers=$(basename "$answers_path") -> $(basename "$out")"
+      if [[ -n "${MAX_ITEMS:-}" ]]; then
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --backend ollama --ollama-model-key "$key" \
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --max-items "$MAX_ITEMS" \
+            --output "$out"
+        else
+        python -m src.run_judging \
+            --answers "$answers_path" \
+            --backend openai \
+            --backend groq --groq-model-key "$key"\
+            --n-repeats "$N_REPEATS" \
+            --max-tokens "$JUDGE_MAX_TOKENS" \
+            --output "$out"
+        fi
+
+    else
+      echo "[WARN] Unknown judge backend '$backend' in spec '$spec' (skipped)"
+    fi
+  done
+}
+
+# -----------------------------
+# Collect answers files:
+#  - If CLI args provided => use them
+#  - Else use ANSWERS_FILES in this script
+# -----------------------------
+FILES_TO_JUDGE=()
+if [[ "$#" -gt 0 ]]; then
+  for p in "$@"; do
+    FILES_TO_JUDGE+=("$p")
+  done
+else
+  FILES_TO_JUDGE=("${ANSWERS_FILES[@]}")
+fi
+
+# Filter empty items
+FILTERED=()
+for p in "${FILES_TO_JUDGE[@]}"; do
+  p="$(echo "$p" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  [[ -z "$p" ]] && continue
+  FILTERED+=("$p")
+done
+FILES_TO_JUDGE=("${FILTERED[@]}")
+
+if [[ "${#FILES_TO_JUDGE[@]}" -eq 0 ]]; then
+  echo "[ERROR] No answers files provided."
+  echo "  - Pass file paths as args, OR"
+  echo "  - Edit ANSWERS_FILES list inside scripts/judge_existing_answers.sh"
   exit 1
 fi
 
-ANSWER_LIST=()
-IFS=';' read -ra ANSWER_LIST <<< "$ANSWER_FILES_STR"
+echo "============================================================"
+echo "[INFO] Project: $PROJECT_ROOT"
+echo "[INFO] OUT_DIR=$OUT_DIR"
+echo "[INFO] JUDGE_SPECS=$JUDGE_SPECS"
+echo "[INFO] N_REPEATS=$N_REPEATS JUDGE_MAX_TOKENS=$JUDGE_MAX_TOKENS MAX_ITEMS=${MAX_ITEMS:-ALL}"
+echo "[INFO] Answers files (${#FILES_TO_JUDGE[@]}):"
+for f in "${FILES_TO_JUDGE[@]}"; do
+  echo "  - $f"
+done
+echo "============================================================"
 
-if [[ ${#ANSWER_LIST[@]} -eq 0 ]]; then
-  echo "[ERROR] 从 ANSWER_FILES 中未解析到任何文件，请检查格式。当前值: '$ANSWER_FILES_STR'"
-  exit 1
-fi
-
-########################################
-# 循环处理每一个 answer 文件
-########################################
-
-for FNAME in "${ANSWER_LIST[@]}"; do
-  FNAME_TRIM="${FNAME//[[:space:]]/}"
-  [[ -z "$FNAME_TRIM" ]] && continue
-
-  ANSWERS_PATH="data/model_outputs/$FNAME_TRIM"
-  if [[ ! -f "$ANSWERS_PATH" ]]; then
-    echo "[WARN] 找不到 answer 文件: $ANSWERS_PATH，跳过。"
+for answers in "${FILES_TO_JUDGE[@]}"; do
+  if [[ ! -f "$answers" ]]; then
+    echo "[WARN] File not found (skipped): $answers"
     continue
   fi
-
-  ANSWERS_STEM="$(basename "$ANSWERS_PATH" .jsonl)"
-
-  echo "==============================="
-  echo ">>> 处理 Answer 文件: $ANSWERS_PATH"
-  echo "==============================="
-
-  # ---------- Step 1: 评分 ----------
-  JUDGE_OUTPUT="data/judge_outputs/${ANSWERS_STEM}_judged_${JUDGE_BACKEND}_${JUDGE_MODEL_TAG}_${TIMESTAMP}.jsonl"
-
-  JUDGE_CMD=(python src/run_judging.py
-             --answers "$ANSWERS_PATH"
-             --backend "$JUDGE_BACKEND"
-             --n_repeats "$N_REPEATS"
-             --scenarios "$SCENARIO_FILE"
-             --output "$JUDGE_OUTPUT")
-
-  if [[ "$JUDGE_BACKEND" == "openai" ]]; then
-    JUDGE_CMD+=(--openai-model "$JUDGE_MODEL_ID")
-  elif [[ "$JUDGE_BACKEND" == "ollama" || "$JUDGE_BACKEND" == "local" ]]; then
-    JUDGE_CMD+=(--ollama-model-key "$JUDGE_MODEL_ID")
-  else
-    echo "[ERROR] 不支持的 judge backend: $JUDGE_BACKEND"
-    exit 1
-  fi
-
-  echo "== [1] 评分 -> $JUDGE_OUTPUT"
-  echo "   命令: ${JUDGE_CMD[*]}"
-  "${JUDGE_CMD[@]}"
-  echo
-
-  # ---------- Step 2: 导出得分 CSV ----------
-  SCORES_OUT="results/scores/$(basename "$JUDGE_OUTPUT" .jsonl).csv"
-
-  echo "== [2] 导出得分 CSV -> $SCORES_OUT"
-  python -m src.analysis.export_scores \
-    --input "$JUDGE_OUTPUT" \
-    --output "$SCORES_OUT"
-  echo
-
+  echo "------------------------------------------------------------"
+  echo "[INFO] Judging file: $answers"
+  run_judges_for_answers "$answers" "$JUDGE_SPECS"
 done
 
-echo "======================"
-echo "所有指定 answer 文件已完成打分并导出。"
-echo "  - Judge 输出： data/judge_outputs/*_judged_${JUDGE_BACKEND}_${JUDGE_MODEL_TAG}_${TIMESTAMP}.jsonl"
-echo "  - 得分 CSV：   results/scores/*_judged_${JUDGE_BACKEND}_${JUDGE_MODEL_TAG}_${TIMESTAMP}.csv"
-echo "======================"
+echo "============================================================"
+echo "[ALL DONE] Judging finished."
+echo "Judge outputs: $OUT_DIR"
+echo "============================================================"

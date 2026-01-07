@@ -1,18 +1,17 @@
 # Python
-*.pyc
 __pycache__/
+*.pyc
 
-# Virtual environments
-venv/
+# Environment
 .env
 
-# Data outputs
-data/model_outputs/*
-data/judge_outputs/*
-results/scores/*
-results/merged/*
-results/analysis/*
-!.gitkeep
+# Data & results (large artifacts)
+data/model_outputs/
+data/judge_outputs/
+results/
 
-# System files
+# OS
 .DS_Store
+
+# Office temp files
+~$*.xlsx

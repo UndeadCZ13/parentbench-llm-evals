@@ -1,0 +1,84 @@
+parentbench-llm-evals
+├── data
+│   ├── judge_outputs
+│   ├── model_outputs
+│   │   └── retried
+│   └── scenarios
+│       ├── base
+│       └── views
+│           ├── en
+│           ├── en_zh
+│           └── zh
+├── results
+│   ├── analysis
+│   │   ├── all
+│   │   │   ├── boxplots
+│   │   │   ├── cross_language
+│   │   │   │   ├── high_lang_shift_scenarios
+│   │   │   │   └── scenario_delta_heatmaps
+│   │   │   │       ├── judge=deepseek-v3.1_671b-cloud
+│   │   │   │       └── judge=gpt-5.2
+│   │   │   ├── embedding
+│   │   │   ├── judge_agreement
+│   │   │   ├── radar
+│   │   │   ├── scenarios
+│   │   │   ├── stats
+│   │   │   └── winrate
+│   │   ├── en
+│   │   │   ├── boxplots
+│   │   │   ├── embedding
+│   │   │   ├── judge_agreement
+│   │   │   ├── radar
+│   │   │   ├── scenarios
+│   │   │   ├── stats
+│   │   │   └── winrate
+│   │   ├── generated_plots
+│   │   │   ├── boxplots
+│   │   │   ├── heatmaps
+│   │   │   ├── pca
+│   │   │   ├── scatter
+│   │   │   └── winrate
+│   │   ├── report
+│   │   └── zh
+│   │       ├── boxplots
+│   │       ├── embedding
+│   │       ├── judge_agreement
+│   │       ├── radar
+│   │       ├── scenarios
+│   │       ├── stats
+│   │       └── winrate
+│   ├── merged
+│   └── scores
+├── scripts
+│   ├── report_prompt
+│   ├── build_scenario_views.py
+│   ├── check_generation_completeness.py
+│   ├── convert_scenarios_from_excel.py
+│   ├── generate_llm_report_with_vision.py
+│   ├── generate_zh_scenarios.py
+│   ├── judge_existing_answers.sh
+│   ├── markdown_to_docx.py
+│   ├── retry_bad_generations.py
+│   ├── run_full_en_zh.sh
+│   ├── run_multi_generation_and_judge.sh
+│   ├── translate_scenarios_to_zh.py
+│   └── vision_model_caller.py
+├── src
+│   ├── analysis
+│   │   ├── __init__.py
+│   │   ├── analyze_scores.py
+│   │   ├── build_networks.py
+│   │   ├── collect_and_merge.py
+│   │   ├── export_scores.py
+│   │   ├── merge_judge_scores.py
+│   │   └── scoring_utils.py
+│   ├── judges
+│   │   ├── __init__.py
+│   │   └── judge_prompts.py
+│   ├── __init__.py
+│   ├── config.py
+│   ├── list_supported_models.py
+│   ├── model_caller.py
+│   ├── run_generation.py
+│   └── run_judging.py
+└── dump_project_tree.py
